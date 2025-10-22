@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 64" role="img" aria-labelledby="title desc">
+  <title id="title">Chaching — cash reconciliation logo (orange)</title>
+  <desc id="desc">An orange “C” arc around a safe dial, with an amber banknote and checkmark, plus the word Chaching.</desc>
+  <!--
+    NOTE: If you embed this file as <img>, colors are baked-in.
+    To theme via CSS variables, inline the SVG in your markup.
+  -->
+  <style>
+    :root{
+      --chaching-orange:#F97316; /* primary brand orange */
+      --chaching-amber:#FDBA74;  /* banknote amber */
+      --chaching-ink:#0F172A;    /* wordmark base */
+      --chaching-safe:#334155;   /* safe dial strokes */
+      --chaching-bg:#ffffff;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{ --chaching-ink:#E5E7EB; --chaching-bg:#0B1020; }
+    }
+    text { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  </style>
+
+  <!-- ICON -->
+  <g transform="translate(8,8)">
+    <!-- “C” arc -->
+    <path d="M40 8 A 24 24 0 1 0 40 40" fill="none" stroke="var(--chaching-orange)" stroke-width="8" stroke-linecap="round"></path>
+
+    <!-- Safe dial -->
+    <circle cx="24" cy="24" r="9.5" fill="var(--chaching-bg)" stroke="var(--chaching-safe)" stroke-width="3"></circle>
+    <circle cx="24" cy="24" r="3" fill="var(--chaching-safe)"></circle>
+    <line x1="24" y1="16" x2="24" y2="20" stroke="var(--chaching-safe)" stroke-width="2" stroke-linecap="round"></line>
+    <line x1="24" y1="28" x2="24" y2="32" stroke="var(--chaching-safe)" stroke-width="2" stroke-linecap="round"></line>
+    <line x1="16" y1="24" x2="20" y2="24" stroke="var(--chaching-safe)" stroke-width="2" stroke-linecap="round"></line>
+    <line x1="28" y1="24" x2="32" y2="24" stroke="var(--chaching-safe)" stroke-width="2" stroke-linecap="round"></line>
+
+    <!-- Bill near gap -->
+    <rect x="44" y="20" width="22" height="12" rx="2.5" fill="var(--chaching-amber)" transform="rotate(10 55 26)"></rect>
+    <circle cx="55" cy="26" r="3.2" fill="#000000" fill-opacity="0.12"></circle>
+
+    <!-- Reconciliation check -->
+    <path d="M18 28 l4 4 l8 -10" fill="none" stroke="var(--chaching-orange)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></path>
+
+    <!-- “Cha-ching” sparkle lines -->
+    <line x1="44" y1="12" x2="44" y2="6" stroke="var(--chaching-amber)" stroke-width="2" stroke-linecap="round"></line>
+    <line x1="54" y1="14" x2="58" y2="10" stroke="var(--chaching-amber)" stroke-width="2" stroke-linecap="round"></line>
+  </g>
+
+  <!-- WORDMARK -->
+  <text x="88" y="42" font-size="36" font-weight="700" letter-spacing="0.4">
+    <tspan fill="var(--chaching-ink)">Cha</tspan><tspan fill="var(--chaching-orange)">ching</tspan>
+  </text>
+</svg>
