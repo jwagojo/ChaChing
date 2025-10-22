@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 function Home() {
   return (
     <div>
@@ -5,9 +7,12 @@ function Home() {
         <div className="max-w-7xl mx-auto px-4 text-center">
           <h1 className="text-5xl font-bold mb-6">Welcome to ChaChing</h1>
           <p className="text-xl mb-8">Need to close register?</p>
-          <button className="bg-white text-orange-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          <Link 
+            to="/closing" 
+            className="inline-block bg-white text-orange-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
             Start Closing
-          </button>
+          </Link>
         </div>
       </div>
       
