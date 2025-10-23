@@ -16,3 +16,59 @@
   background-size: 400% 400%;
   animation: gradient 6s ease infinite;
 }
+
+@keyframes float {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.dollar-sign {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 2rem;
+  font-weight: bold;
+  animation: float linear infinite;
+  pointer-events: none;
+}
+
+.dollar-sign:nth-child(1) { left: 10%; animation-duration: 8s; animation-delay: 0s; }
+.dollar-sign:nth-child(2) { left: 20%; animation-duration: 10s; animation-delay: 2s; }
+.dollar-sign:nth-child(3) { left: 30%; animation-duration: 7s; animation-delay: 4s; }
+.dollar-sign:nth-child(4) { left: 40%; animation-duration: 9s; animation-delay: 1s; }
+.dollar-sign:nth-child(5) { left: 50%; animation-duration: 11s; animation-delay: 3s; }
+.dollar-sign:nth-child(6) { left: 60%; animation-duration: 8s; animation-delay: 5s; }
+.dollar-sign:nth-child(7) { left: 70%; animation-duration: 10s; animation-delay: 1.5s; }
+.dollar-sign:nth-child(8) { left: 80%; animation-duration: 9s; animation-delay: 2.5s; }
+.dollar-sign:nth-child(9) { left: 90%; animation-duration: 7s; animation-delay: 4.5s; }
+
+.dollar-sign-white {
+  position: absolute;
+  color: rgba(0, 0, 0, 0.05);
+  font-size: 1.5rem;
+  font-weight: bold;
+  animation: float linear infinite;
+  pointer-events: none;
+}
+
+.dollar-sign-white:nth-child(1) { left: 5%; animation-duration: 12s; animation-delay: 0s; }
+.dollar-sign-white:nth-child(2) { left: 15%; animation-duration: 15s; animation-delay: 3s; }
+.dollar-sign-white:nth-child(3) { left: 25%; animation-duration: 10s; animation-delay: 6s; }
+.dollar-sign-white:nth-child(4) { left: 35%; animation-duration: 14s; animation-delay: 2s; }
+.dollar-sign-white:nth-child(5) { left: 45%; animation-duration: 11s; animation-delay: 5s; }
+.dollar-sign-white:nth-child(6) { left: 55%; animation-duration: 13s; animation-delay: 1s; }
+.dollar-sign-white:nth-child(7) { left: 65%; animation-duration: 16s; animation-delay: 4s; }
+.dollar-sign-white:nth-child(8) { left: 75%; animation-duration: 9s; animation-delay: 7s; }
+.dollar-sign-white:nth-child(9) { left: 85%; animation-duration: 12s; animation-delay: 3.5s; }
+.dollar-sign-white:nth-child(10) { left: 95%; animation-duration: 14s; animation-delay: 6.5s; }

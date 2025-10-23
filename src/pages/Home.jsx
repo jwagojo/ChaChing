@@ -3,8 +3,14 @@ import { Link } from 'react-router-dom';
 function Home() {
   return (
     <div>
-      <div className="bg-gradient-to-br from-orange-500 via-red-500 to-white-500 animate-gradient text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+      <div className="bg-gradient-to-br from-orange-500 via-red-500 to-white-500 animate-gradient text-white py-20 relative overflow-hidden">
+        <div className="absolute inset-0">
+          {[...Array(9)].map((_, i) => (
+            <div key={i} className="dollar-sign">$</div>
+          ))}
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 text-center relative z-10">
           <h1 className="text-5xl font-bold mb-6">Welcome to ChaChing</h1>
           <p className="text-xl mb-8">Need to close register?</p>
           <Link 
@@ -16,8 +22,13 @@ function Home() {
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-16 relative overflow-hidden">
+        <div className="absolute inset-0">
+          {[...Array(10)].map((_, i) => (
+            <div key={i} className="dollar-sign-white">$</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
           <div className="text-center p-6 bg-white rounded-lg shadow-md">
             <h3 className="text-xl font-semibold mb-4">Count Cash</h3>
             <p className="text-gray-600">Enter the amount of bills and coins in your register</p>

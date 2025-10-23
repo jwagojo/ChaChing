@@ -1,20 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function Closing() {
   const [counts, setCounts] = useState({
     // Bills
-    hundreds: 0,
-    fifties: 0,
-    twenties: 0,
-    tens: 0,
-    fives: 0,
-    ones: 0,
+    hundreds: '',
+    fifties: '',
+    twenties: '',
+    tens: '',
+    fives: '',
+    ones: '',
     // Coins
-    quarters: 0,
-    dimes: 0,
-    nickels: 0,
-    pennies: 0
+    quarters: '',
+    dimes: '',
+    nickels: '',
+    pennies: '',
+    // Rolls
+    quarterRolls: '',
+    dimeRolls: '',
+    nickelRolls: '',
+    pennyRolls: ''
   });
+
+  const [closingResult, setClosingResult] = useState('');
 
   const denominations = {
     hundreds: 100,
@@ -26,19 +33,24 @@ function Closing() {
     quarters: 0.25,
     dimes: 0.10,
     nickels: 0.05,
-    pennies: 0.01
+    pennies: 0.01,
+    quarterRolls: 10.00,
+    dimeRolls: 5.00,
+    nickelRolls: 2.00,
+    pennyRolls: 0.50
   };
 
   const handleCountChange = (denomination, value) => {
     setCounts(prev => ({
       ...prev,
-      [denomination]: Math.max(0, parseInt(value) || 0)
+      [denomination]: value === '' ? '' : Math.max(0, parseInt(value) || 0).toString()
     }));
   };
 
   const calculateTotal = () => {
     return Object.entries(counts).reduce((total, [denom, count]) => {
-      return total + (count * denominations[denom]);
+      const numCount = parseInt(count) || 0;
+      return total + (numCount * denominations[denom]);
     }, 0);
   };
 
@@ -49,65 +61,152 @@ function Closing() {
     return { safeAmount, revenueAmount };
   };
 
+  const closeRegister = () => {
+    const total = calculateTotal();
+    
+    if (total > 200) {
+      let revenue = Math.floor(total - 200);
+      let text = "Bills in the envelope:\n";
+      let moneyInEnvelope = 0.00;
+      
+      const money = [
+        { value: 1 }, { value: 5 }, { value: 10 }, { value: 20 }, { value: 50 }, { value: 100 }
+      ];
+      
+      const moneyAmount = [
+        { count: parseInt(counts.ones) || 0 },
+        { count: parseInt(counts.fives) || 0 },
+        { count: parseInt(counts.tens) || 0 },
+        { count: parseInt(counts.twenties) || 0 },
+        { count: parseInt(counts.fifties) || 0 },
+        { count: parseInt(counts.hundreds) || 0 }
+      ];
+
+      for (let i = 5; i >= 4; i--) {
+        const bills = Math.min(Math.floor(revenue / money[i].value), moneyAmount[i].count || 0);
+        revenue -= bills * money[i].value;
+        moneyInEnvelope += bills * money[i].value;
+        if (bills !== 0) {
+          text += `$${money[i].value}: ${bills}\n`;
+        }
+      }
+
+      for (let i = 3; i >= 0; i--) {
+        if (revenue > 4) {
+          const bills = Math.min(Math.floor(revenue / money[i].value), Math.max(0, (moneyAmount[i].count) - 1));
+          revenue -= bills * money[i].value;
+          moneyInEnvelope += bills * money[i].value;
+          if (bills !== 0) {
+            text += `$${money[i].value}: ${bills}\n`;
+          }
+        }
+      }
+
+      const moneyInRegister = (total - moneyInEnvelope).toFixed(2);
+      text += `Money in envelope: $${moneyInEnvelope.toFixed(2)}\nMoney in register: $${moneyInRegister}`;
+      setClosingResult(text);
+    }
+  };
+
+  // Auto-update
+  useEffect(() => {
+    if (Object.values(counts).some(count => count !== '')) {
+      closeRegister();
+    } else {
+      setClosingResult('');
+    }
+  }, [counts]);
+
   const total = calculateTotal();
   const { safeAmount, revenueAmount } = calculateSplit(total);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-16">
-      <div className="text-center mb-12">
+    <div className="max-w-6xl mx-auto px-4 py-16 relative overflow-hidden">
+
+      <div className="absolute inset-0">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="dollar-sign-white">$</div>
+        ))}
+      </div>
+
+      <div className="text-center mb-12 relative z-10">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">Register Closing Calculator</h1>
         <p className="text-xl text-gray-600">Count your cash and let us handle the split</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Input Section */}
+      <div className="space-y-8 relative z-10">
+  
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-semibold mb-6 text-gray-800">Count Your Cash</h2>
           
-          {/* Bills */}
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-4 text-gray-700">Bills</h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
-                { key: 'hundreds', label: '$100', color: 'bg-green-100' },
-                { key: 'fifties', label: '$50', color: 'bg-blue-100' },
-                { key: 'twenties', label: '$20', color: 'bg-yellow-100' },
-                { key: 'tens', label: '$10', color: 'bg-red-100' },
-                { key: 'fives', label: '$5', color: 'bg-purple-100' },
-                { key: 'ones', label: '$1', color: 'bg-gray-100' }
+                { key: 'hundreds', label: '$100', color: 'bg-green-200' },
+                { key: 'fifties', label: '$50', color: 'bg-blue-200' },
+                { key: 'twenties', label: '$20', color: 'bg-yellow-200' },
+                { key: 'tens', label: '$10', color: 'bg-red-200' },
+                { key: 'fives', label: '$5', color: 'bg-purple-200' },
+                { key: 'ones', label: '$1', color: 'bg-gray-200' }
               ].map(({ key, label, color }) => (
-                <div key={key} className={`flex items-center justify-between p-3 rounded-lg ${color}`}>
-                  <span className="font-medium">{label}</span>
+                <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
+                  <span className="font-medium mb-2">{label}</span>
                   <input
                     type="number"
                     min="0"
                     value={counts[key]}
                     onChange={(e) => handleCountChange(key, e.target.value)}
-                    className="w-20 px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="0"
+                    className="w-16 px-2 py-1 border-2 border-gray-500 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 shadow-inner"
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Coins */}
-          <div>
+          <div className="mb-6">
             <h3 className="text-lg font-medium mb-4 text-gray-700">Coins</h3>
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { key: 'quarters', label: '$0.25', color: 'bg-orange-100' },
+                { key: 'quarters', label: '$0.25', color: 'bg-orange-200' },
                 { key: 'dimes', label: '$0.10', color: 'bg-pink-100' },
-                { key: 'nickels', label: '$0.05', color: 'bg-indigo-100' },
-                { key: 'pennies', label: '$0.01', color: 'bg-amber-100' }
+                { key: 'nickels', label: '$0.05', color: 'bg-indigo-200' },
+                { key: 'pennies', label: '$0.01', color: 'bg-amber-200' }
               ].map(({ key, label, color }) => (
-                <div key={key} className={`flex items-center justify-between p-3 rounded-lg ${color}`}>
-                  <span className="font-medium">{label}</span>
+                <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
+                  <span className="font-medium mb-2">{label}</span>
                   <input
                     type="number"
                     min="0"
                     value={counts[key]}
                     onChange={(e) => handleCountChange(key, e.target.value)}
-                    className="w-20 px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="0"
+                    className="w-16 px-2 py-1 border-2 border-gray-500 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 shadow-inner"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-medium mb-4 text-gray-700">Rolls</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { key: 'quarterRolls', label: '$10.00', color: 'bg-orange-200' },
+                { key: 'dimeRolls', label: '$5.00', color: 'bg-pink-200' },
+                { key: 'nickelRolls', label: '$2.00', color: 'bg-indigo-200' },
+                { key: 'pennyRolls', label: '$0.50', color: 'bg-amber-200' }
+              ].map(({ key, label, color }) => (
+                <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
+                  <span className="font-medium mb-2">{label}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={counts[key]}
+                    onChange={(e) => handleCountChange(key, e.target.value)}
+                    placeholder="0"
+                    className="w-16 px-2 py-1 border-2 border-gray-500 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 shadow-inner"
                   />
                 </div>
               ))}
@@ -115,23 +214,29 @@ function Closing() {
           </div>
         </div>
 
-        {/* Results Section */}
+
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-semibold mb-6 text-gray-800">Calculation Results</h2>
           
           <div className="space-y-6">
-            {/* Total */}
+
             <div className="bg-gray-50 rounded-lg p-4">
               <h3 className="text-lg font-medium text-gray-700 mb-2">Total Cash Count</h3>
               <p className="text-3xl font-bold text-gray-900">${total.toFixed(2)}</p>
             </div>
 
-            {/* Split */}
-            <div className="space-y-4">
+            {closingResult && (
               <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-                <h3 className="text-lg font-medium text-green-800 mb-1">Revenue Deposit</h3>
-                <p className="text-2xl font-bold text-green-700">${revenueAmount.toFixed(2)}</p>
-                <p className="text-sm text-green-600 mt-1">Amount to deposit for revenue</p>
+                <h3 className="text-lg font-medium text-green-800 mb-2">Register Closing Instructions</h3>
+                <pre className="text-sm text-green-700 whitespace-pre-line">{closingResult}</pre>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500">
+                <h3 className="text-lg font-medium text-yellow-800 mb-1">Revenue Deposit</h3>
+                <p className="text-2xl font-bold text-yellow-700">${revenueAmount.toFixed(2)}</p>
+                <p className="text-sm text-yellow-600 mt-1">Amount to deposit for revenue</p>
               </div>
 
               <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
@@ -140,20 +245,32 @@ function Closing() {
                 <p className="text-sm text-blue-600 mt-1">Amount to keep in safe</p>
               </div>
             </div>
-
-            {/* Action Buttons */}
             <div className="space-y-3 pt-4">
-              <button className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium">
-                Save Calculation
-              </button>
               <button 
-                onClick={() => setCounts({
-                  hundreds: 0, fifties: 0, twenties: 0, tens: 0, fives: 0, ones: 0,
-                  quarters: 0, dimes: 0, nickels: 0, pennies: 0
-                })}
+                onClick={() => {
+                  setCounts({
+                    hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
+                    quarters: '', dimes: '', nickels: '', pennies: '',
+                    quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
+                  });
+                  setClosingResult('');
+                }}
                 className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium"
               >
                 Clear All
+              </button>
+              <button 
+                onClick={() => {
+                  setCounts({
+                    hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
+                    quarters: '', dimes: '', nickels: '', pennies: '',
+                    quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
+                  });
+                  setClosingResult('');
+                }}
+                className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+              >
+                Log Register Closing
               </button>
             </div>
           </div>
