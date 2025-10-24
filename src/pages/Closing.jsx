@@ -22,6 +22,7 @@ function Closing() {
   });
 
   const [closingResult, setClosingResult] = useState('');
+  const [closer, setCloser] = useState('');
 
   const denominations = {
     hundreds: 100,
@@ -135,20 +136,31 @@ function Closing() {
       </div>
 
       <div className="space-y-8 relative z-10">
-  
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800">Count Your Cash</h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-gray-800">Count Your Cash</h2>
+            <div className="flex items-center space-x-2">
+              <label className="text-sm font-medium text-gray-700">Closer:</label>
+              <input
+                type="text"
+                value={closer}
+                onChange={(e) => setCloser(e.target.value)}
+                placeholder="Your name"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              />
+            </div>
+          </div>
           
           <div className="mb-6">
             <h3 className="text-lg font-medium mb-4 text-gray-700">Bills</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
-                { key: 'hundreds', label: '$100', color: 'bg-green-200' },
-                { key: 'fifties', label: '$50', color: 'bg-blue-200' },
-                { key: 'twenties', label: '$20', color: 'bg-yellow-200' },
-                { key: 'tens', label: '$10', color: 'bg-red-200' },
-                { key: 'fives', label: '$5', color: 'bg-purple-200' },
-                { key: 'ones', label: '$1', color: 'bg-gray-200' }
+                { key: 'hundreds', label: '$100', color: 'bg-gray-100' },
+                { key: 'fifties', label: '$50', color: 'bg-gray-100' },
+                { key: 'twenties', label: '$20', color: 'bg-gray-100' },
+                { key: 'tens', label: '$10', color: 'bg-gray-100' },
+                { key: 'fives', label: '$5', color: 'bg-gray-100' },
+                { key: 'ones', label: '$1', color: 'bg-gray-100' }
               ].map(({ key, label, color }) => (
                 <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
                   <span className="font-medium mb-2">{label}</span>
@@ -169,10 +181,10 @@ function Closing() {
             <h3 className="text-lg font-medium mb-4 text-gray-700">Coins</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { key: 'quarters', label: '$0.25', color: 'bg-orange-200' },
-                { key: 'dimes', label: '$0.10', color: 'bg-pink-100' },
-                { key: 'nickels', label: '$0.05', color: 'bg-indigo-200' },
-                { key: 'pennies', label: '$0.01', color: 'bg-amber-200' }
+                { key: 'quarters', label: '$0.25', color: 'bg-gray-100' },
+                { key: 'dimes', label: '$0.10', color: 'bg-gray-100' },
+                { key: 'nickels', label: '$0.05', color: 'bg-gray-100' },
+                { key: 'pennies', label: '$0.01', color: 'bg-gray-100' }
               ].map(({ key, label, color }) => (
                 <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
                   <span className="font-medium mb-2">{label}</span>
@@ -193,10 +205,10 @@ function Closing() {
             <h3 className="text-lg font-medium mb-4 text-gray-700">Rolls</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { key: 'quarterRolls', label: '$10.00', color: 'bg-orange-200' },
-                { key: 'dimeRolls', label: '$5.00', color: 'bg-pink-200' },
-                { key: 'nickelRolls', label: '$2.00', color: 'bg-indigo-200' },
-                { key: 'pennyRolls', label: '$0.50', color: 'bg-amber-200' }
+                { key: 'quarterRolls', label: '$10.00', color: 'bg-gray-100' },
+                { key: 'dimeRolls', label: '$5.00', color: 'bg-gray-100' },
+                { key: 'nickelRolls', label: '$2.00', color: 'bg-gray-100' },
+                { key: 'pennyRolls', label: '$0.50', color: 'bg-gray-100' }
               ].map(({ key, label, color }) => (
                 <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
                   <span className="font-medium mb-2">{label}</span>
