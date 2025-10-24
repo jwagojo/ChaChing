@@ -24,9 +24,6 @@ function Home() {
       
       <div className="max-w-7xl mx-auto px-4 py-16 relative overflow-hidden">
         <div className="absolute inset-0">
-          {[...Array(10)].map((_, i) => (
-            <div key={i} className="dollar-sign-white">$</div>
-          ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
           <div className="text-center p-6 bg-white rounded-lg shadow-md">

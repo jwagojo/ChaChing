@@ -130,9 +130,9 @@ function Closing() {
         ))}
       </div>
 
-      <div className="text-center mb-12 relative z-10">
+      <div className="text-center relative z-10">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">Register Closing Calculator</h1>
-        <p className="text-xl text-gray-600">Count your cash and let us handle the split</p>
+        <p className="text-xl text-gray-600 mb-6">Count your cash and let us handle the split</p>
       </div>
 
       <div className="space-y-8 relative z-10">
