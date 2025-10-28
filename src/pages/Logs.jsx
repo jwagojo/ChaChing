@@ -1,5 +1,5 @@
 function Logs() {
-  // Temporary mock data
+  
   const mockLogs = [
     {
       id: 1,
@@ -66,12 +66,6 @@ function Logs() {
             </tbody>
           </table>
         </div>
-      </div>
-      
-      <div className="mt-8 text-center">
-        <p className="text-gray-500 italic">
-          Database integration coming soon - logs will be automatically saved
-        </p>
       </div>
     </div>
   );

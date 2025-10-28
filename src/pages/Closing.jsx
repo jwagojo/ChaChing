@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { cosmosDbService } from '../services/cosmosDb';
 
 function Closing() {
   const [counts, setCounts] = useState({
@@ -23,6 +24,8 @@ function Closing() {
 
   const [closingResult, setClosingResult] = useState('');
   const [closer, setCloser] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
 
   const denominations = {
     hundreds: 100,
@@ -106,6 +109,55 @@ function Closing() {
       const moneyInRegister = (total - moneyInEnvelope).toFixed(2);
       text += `Money in envelope: $${moneyInEnvelope.toFixed(2)}\nMoney in register: $${moneyInRegister}`;
       setClosingResult(text);
+    }
+  };
+
+  const logRegisterClosing = async () => {
+    if (!closer.trim()) {
+      setSaveStatus('Please enter your name as the closer.');
+      return;
+    }
+
+    if (total === 0) {
+      setSaveStatus('Please enter cash counts before logging.');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus('Saving...');
+
+    try {
+      const closingData = {
+        closer: closer.trim(),
+        counts,
+        totalAmount: total,
+        safeAmount,
+        revenueAmount,
+        closingInstructions: closingResult,
+        timestamp: new Date().toISOString(),
+        date: new Date().toDateString()
+      };
+
+      await cosmosDbService.createRegisterClosing(closingData);
+      setSaveStatus('Register closing logged successfully!');
+      
+      // Clear form after successful save
+      setTimeout(() => {
+        setCounts({
+          hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
+          quarters: '', dimes: '', nickels: '', pennies: '',
+          quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
+        });
+        setClosingResult('');
+        setCloser('');
+        setSaveStatus('');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error logging register closing:', error);
+      setSaveStatus('Error saving register closing. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -271,18 +323,25 @@ function Closing() {
               >
                 Clear All
               </button>
+              
+              {saveStatus && (
+                <div className={`p-3 rounded-lg text-center ${
+                  saveStatus.includes('Error') 
+                    ? 'bg-red-50 text-red-700 border border-red-200'
+                    : saveStatus.includes('successfully')
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-blue-50 text-blue-700 border border-blue-200'
+                }`}>
+                  {saveStatus}
+                </div>
+              )}
+
               <button 
-                onClick={() => {
-                  setCounts({
-                    hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
-                    quarters: '', dimes: '', nickels: '', pennies: '',
-                    quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
-                  });
-                  setClosingResult('');
-                }}
-                className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium"
+                onClick={logRegisterClosing}
+                disabled={isSaving || !closer.trim() || total === 0}
+                className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
               >
-                Log Register Closing
+                {isSaving ? 'Logging...' : 'Log Register Closing'}
               </button>
             </div>
           </div>
