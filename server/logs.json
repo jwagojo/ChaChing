@@ -1,0 +1,28 @@
+[
+  {
+    "id": "1764082182925",
+    "date": "2025-11-25",
+    "timestamp": "2025-11-25T14:49:42.925Z",
+    "closer": "Wes",
+    "counts": {
+      "hundreds": "100",
+      "fifties": "1",
+      "twenties": "2",
+      "tens": "3",
+      "fives": "4",
+      "ones": "2",
+      "quarters": "4",
+      "dimes": "2",
+      "nickels": "3",
+      "pennies": "2",
+      "quarterRolls": "2",
+      "dimeRolls": "1",
+      "nickelRolls": "4",
+      "pennyRolls": "5"
+    },
+    "totalAmount": 10178.87,
+    "safeAmount": 1017.8870000000002,
+    "revenueAmount": 9160.983,
+    "closingInstructions": "Bills in the envelope:\n$100: 99\n$50: 1\nMoney in envelope: $9950.00\nMoney in register: $228.87"
+  }
+]
