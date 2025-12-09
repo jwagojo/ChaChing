@@ -2,12 +2,12 @@
   {
     "id": "1764082182925",
     "date": "2025-11-25",
-    "timestamp": "2025-11-25T14:49:42.925Z",
+    "timestamp": "2025-11-25T15:20:57.659Z",
     "closer": "Wes",
     "counts": {
       "hundreds": "100",
       "fifties": "1",
-      "twenties": "2",
+      "twenties": "20",
       "tens": "3",
       "fives": "4",
       "ones": "2",
@@ -20,9 +20,61 @@
       "nickelRolls": "4",
       "pennyRolls": "5"
     },
-    "totalAmount": 10178.87,
-    "safeAmount": 1017.8870000000002,
-    "revenueAmount": 9160.983,
-    "closingInstructions": "Bills in the envelope:\n$100: 99\n$50: 1\nMoney in envelope: $9950.00\nMoney in register: $228.87"
+    "totalAmount": 10538.87,
+    "safeAmount": 1053.8870000000002,
+    "revenueAmount": 9484.983,
+    "closingInstructions": "Bills in the envelope:\n$100: 100\n$50: 1\n$20: 14\nMoney in envelope: $10330.00\nMoney in register: $208.87"
+  },
+  {
+    "id": "1764084037492",
+    "date": "2025-11-25",
+    "timestamp": "2025-11-25T15:20:37.492Z",
+    "closer": "Wes",
+    "counts": {
+      "hundreds": "0",
+      "fifties": "2",
+      "twenties": "6",
+      "tens": "55",
+      "fives": "20",
+      "ones": "44",
+      "quarters": "4",
+      "dimes": "5",
+      "nickels": "6",
+      "pennies": "6",
+      "quarterRolls": "4",
+      "dimeRolls": "13",
+      "nickelRolls": "3",
+      "pennyRolls": "4"
+    },
+    "totalAmount": 1028.86,
+    "safeAmount": 102.886,
+    "revenueAmount": 925.9739999999999,
+    "closingInstructions": "Bills in the envelope:\n$50: 2\n$20: 1\n$10: 50\n$5: 15\n$1: 39\nMoney in envelope: $734.00\nMoney in register: $294.86"
+  },
+  {
+    "id": "1764091964880",
+    "date": "2025-11-25",
+    "timestamp": "2025-11-25T17:32:59.581Z",
+    "closer": "Thompson",
+    "counts": {
+      "hundreds": "3",
+      "fifties": "3",
+      "twenties": "3",
+      "tens": "3",
+      "fives": "32",
+      "ones": "3",
+      "quarters": "",
+      "dimes": "1",
+      "nickels": "2",
+      "pennies": "3",
+      "quarterRolls": "",
+      "dimeRolls": "",
+      "nickelRolls": "",
+      "pennyRolls": ""
+    },
+    "totalAmount": 703.23,
+    "safeAmount": 100,
+    "revenueAmount": 603.23,
+    "closingInstructions": "Bills in the envelope:\n$100: 3\n$50: 3\n$5: 10\nMoney in envelope: $500.00\nMoney in register: $203.23"
   }
 ]
