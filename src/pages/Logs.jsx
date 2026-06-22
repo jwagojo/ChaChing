@@ -142,14 +142,71 @@ function Logs() {
           </div>
         ) : (
           <div className="bg-white border border-black/[0.09] overflow-hidden" style={{ borderRadius: '1px' }}>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[500px]">
+
+            {/* ── Mobile card list (hidden on sm+) ─────────────────── */}
+            <div className="sm:hidden divide-y divide-black/[0.05]">
+              {filteredClosings.map(log => (
+                <div key={log.id} className="px-4 py-4">
+                  {/* Top row: date + total */}
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-[11px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
+                      {log.timestamp ? fmtDate(new Date(log.timestamp).toISOString().split('T')[0]) : log.date}
+                    </span>
+                    <span className="text-[15px] text-[#111]" style={{ fontFamily: mono }}>
+                      {$$(log.totalAmount)}
+                    </span>
+                  </div>
+                  {/* Closer name */}
+                  <div className="text-[14px] text-[#111] mb-3" style={{ fontFamily: serif }}>
+                    {log.closer}
+                  </div>
+                  {/* Deposit / Safe */}
+                  <div className="flex items-center gap-5 mb-3">
+                    <div>
+                      <div className="text-[9px] uppercase tracking-[0.15em] text-[#8a8378] mb-0.5" style={{ fontFamily: serif }}>Deposit</div>
+                      <div className="text-[13px] text-[#2a2a2a]" style={{ fontFamily: mono }}>{$$(log.revenueAmount)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] uppercase tracking-[0.15em] text-[#8a8378] mb-0.5" style={{ fontFamily: serif }}>Safe</div>
+                      <div className="text-[13px] text-[#8a8378]" style={{ fontFamily: mono }}>{$$(log.safeAmount)}</div>
+                    </div>
+                  </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-4 pt-2 border-t border-black/[0.05]">
+                    <button
+                      onClick={() => generatePDF(log)}
+                      className="text-[10px] uppercase tracking-[0.12em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors py-1"
+                      style={{ fontFamily: serif }}
+                    >
+                      PDF
+                    </button>
+                    <button
+                      onClick={() => handleEdit(log)}
+                      className="text-[10px] uppercase tracking-[0.12em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors py-1"
+                      style={{ fontFamily: serif }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(log.id)}
+                      className="ml-auto text-black/20 hover:text-[#991b1b] active:opacity-60 transition-colors p-1"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* ── Desktop/tablet table (hidden below sm) ───────────── */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full">
                 <thead>
                   <tr className="border-b border-black/10">
                     {['Date', 'Closer', 'Total', 'Deposit', 'Safe', ''].map((col, i) => (
                       <th
                         key={i}
-                        className={`px-3 sm:px-5 py-3 sm:py-4 text-[10px] uppercase tracking-[0.15em] sm:tracking-[0.18em] text-[#8a8378] font-normal whitespace-nowrap ${i >= 2 && i < 5 ? 'text-right' : 'text-left'}`}
+                        className={`px-5 py-4 text-[10px] uppercase tracking-[0.18em] text-[#8a8378] font-normal whitespace-nowrap ${i >= 2 && i < 5 ? 'text-right' : 'text-left'}`}
                         style={{ fontFamily: serif }}
                       >
                         {col}
@@ -160,33 +217,33 @@ function Logs() {
                 <tbody>
                   {filteredClosings.map(log => (
                     <tr key={log.id} className="border-b border-black/[0.05] last:border-0 hover:bg-[#F7F4EE]/60 transition-colors group">
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-[11px] sm:text-[12px] italic text-[#8a8378] whitespace-nowrap" style={{ fontFamily: serif }}>
+                      <td className="px-5 py-4 text-[12px] italic text-[#8a8378] whitespace-nowrap" style={{ fontFamily: serif }}>
                         {log.timestamp ? fmtDate(new Date(log.timestamp).toISOString().split('T')[0]) : log.date}
                       </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-[13px] sm:text-[14px] text-[#111]" style={{ fontFamily: serif }}>
+                      <td className="px-5 py-4 text-[14px] text-[#111]" style={{ fontFamily: serif }}>
                         {log.closer}
                       </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right text-[13px] sm:text-[14px] text-[#111] whitespace-nowrap" style={{ fontFamily: mono }}>
+                      <td className="px-5 py-4 text-right text-[14px] text-[#111] whitespace-nowrap" style={{ fontFamily: mono }}>
                         {$$(log.totalAmount)}
                       </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right text-[12px] sm:text-[13px] text-[#2a2a2a] whitespace-nowrap" style={{ fontFamily: mono }}>
+                      <td className="px-5 py-4 text-right text-[13px] text-[#2a2a2a] whitespace-nowrap" style={{ fontFamily: mono }}>
                         {$$(log.revenueAmount)}
                       </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right text-[12px] sm:text-[13px] text-[#8a8378] whitespace-nowrap" style={{ fontFamily: mono }}>
+                      <td className="px-5 py-4 text-right text-[13px] text-[#8a8378] whitespace-nowrap" style={{ fontFamily: mono }}>
                         {$$(log.safeAmount)}
                       </td>
-                      <td className="px-2 sm:px-4 py-3 sm:py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 sm:gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <td className="px-4 py-4 text-right">
+                        <div className="flex items-center justify-end gap-3">
                           <button
                             onClick={() => generatePDF(log)}
-                            className="text-[10px] uppercase tracking-[0.1em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors hidden sm:inline"
+                            className="text-[10px] uppercase tracking-[0.1em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors"
                             style={{ fontFamily: serif }}
                           >
                             PDF
                           </button>
                           <button
                             onClick={() => handleEdit(log)}
-                            className="text-[10px] uppercase tracking-[0.1em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors hidden sm:inline"
+                            className="text-[10px] uppercase tracking-[0.1em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors"
                             style={{ fontFamily: serif }}
                           >
                             Edit
@@ -205,8 +262,8 @@ function Logs() {
               </table>
             </div>
 
-            {/* Table footer */}
-            <div className="border-t border-black/[0.07] px-3 sm:px-5 py-3 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 bg-[#F7F4EE]/40">
+            {/* Footer totals */}
+            <div className="border-t border-black/[0.07] px-4 sm:px-5 py-3 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 bg-[#F7F4EE]/40">
               <span className="text-[11px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
                 {filteredClosings.length} closings shown
               </span>

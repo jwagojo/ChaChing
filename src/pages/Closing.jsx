@@ -36,23 +36,50 @@ const SAFE_BASE = 200;
 // ─── Denomination Row ─────────────────────────────────────────────────────────
 
 function DRow({ label, unit, count, onChange }) {
-  const sub = (parseInt(count) || 0) * unit;
+  const n = parseInt(count) || 0;
+  const sub = n * unit;
+
+  const decrement = () => onChange(Math.max(0, n - 1).toString());
+  const increment = () => onChange((n + 1).toString());
+
   return (
     <div
-      className="grid items-center py-2.5 border-b border-black/[0.055] last:border-0"
-      style={{ gridTemplateColumns: '1fr 44px 72px', gap: '8px' }}
+      className="grid items-center py-2 border-b border-black/[0.055] last:border-0"
+      style={{ gridTemplateColumns: '1fr auto 72px', gap: '8px' }}
     >
       <span className="text-[13px] sm:text-[14px] text-[#2a2a2a]" style={{ fontFamily: serif }}>{label}</span>
-      <input
-        type="number"
-        inputMode="numeric"
-        min="0"
-        value={count}
-        onChange={e => onChange(e.target.value)}
-        placeholder="—"
-        className="text-center text-[13px] sm:text-[14px] text-[#111] bg-transparent border-0 border-b border-black/20 focus:border-black focus:outline-none pb-0.5 transition-colors duration-150 placeholder-black/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-        style={{ fontFamily: mono }}
-      />
+
+      {/* Stepper */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={decrement}
+          disabled={n === 0}
+          className="w-6 h-6 flex items-center justify-center text-[#8a8378] hover:text-[#111] active:bg-black/5 disabled:opacity-20 disabled:cursor-not-allowed transition-colors rounded-sm select-none"
+          style={{ fontFamily: mono, fontSize: '16px', lineHeight: 1 }}
+        >
+          −
+        </button>
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          value={count}
+          onChange={e => onChange(e.target.value)}
+          placeholder="0"
+          className="w-9 text-center text-[13px] sm:text-[14px] text-[#111] bg-transparent border-0 border-b border-black/20 focus:border-black focus:outline-none pb-0.5 transition-colors duration-150 placeholder-black/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          style={{ fontFamily: mono }}
+        />
+        <button
+          type="button"
+          onClick={increment}
+          className="w-6 h-6 flex items-center justify-center text-[#8a8378] hover:text-[#111] active:bg-black/5 transition-colors rounded-sm select-none"
+          style={{ fontFamily: mono, fontSize: '16px', lineHeight: 1 }}
+        >
+          +
+        </button>
+      </div>
+
       <span className="text-right text-[12px] sm:text-[13px] text-[#8a8378]" style={{ fontFamily: mono }}>
         {sub > 0 ? $$(sub) : ''}
       </span>
@@ -256,7 +283,7 @@ function Closing() {
                 type="text"
                 value={closer}
                 onChange={e => setCloser(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder="Enter your name"
                 className="w-full text-[15px] sm:text-[17px] italic bg-transparent border-0 border-b border-black/[0.18] focus:border-black focus:outline-none pb-1.5 transition-colors duration-150 placeholder-black/20 text-[#111]"
                 style={{ fontFamily: serif }}
               />
@@ -265,7 +292,7 @@ function Closing() {
             {/* Column headers */}
             <div
               className="grid items-center pb-2"
-              style={{ gridTemplateColumns: '1fr 44px 72px', gap: '8px' }}
+              style={{ gridTemplateColumns: '1fr auto 72px', gap: '8px' }}
             >
               {['Denomination', 'Qty', 'Amount'].map((h, i) => (
                 <span
@@ -333,11 +360,16 @@ function Closing() {
             </div>
           </div>
 
-          {/* ── Right: summary panel (desktop) ─────────────────────── */}
+          {/* ── Right: summary panel (desktop sidebar) ──────────────── */}
           <div className="hidden lg:block">
             <div className="sticky top-[85px]">
               <SummaryPanel total={total} deposit={deposit} safe={safe} steps={steps} />
             </div>
+          </div>
+
+          {/* ── Mobile: full summary panel inline below the form ─────── */}
+          <div className="lg:hidden">
+            <SummaryPanel total={total} deposit={deposit} safe={safe} steps={steps} />
           </div>
         </div>
       </main>
