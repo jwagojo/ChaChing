@@ -3,148 +3,145 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { logService } from '../services/logService';
 import jsPDF from 'jspdf';
 
+const serif = '"Times New Roman", Times, Georgia, serif';
+const mono  = '"Courier New", Courier, monospace';
+
+const $$ = (n) => Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+const DENOMINATIONS = [
+  { section: 'Bills',       key: 'hundreds',     label: 'One Hundred Dollars',    unit: 100  },
+  { section: 'Bills',       key: 'fifties',      label: 'Fifty Dollars',          unit: 50   },
+  { section: 'Bills',       key: 'twenties',     label: 'Twenty Dollars',         unit: 20   },
+  { section: 'Bills',       key: 'tens',         label: 'Ten Dollars',            unit: 10   },
+  { section: 'Bills',       key: 'fives',        label: 'Five Dollars',           unit: 5    },
+  { section: 'Bills',       key: 'ones',         label: 'One Dollar',             unit: 1    },
+  { section: 'Loose Coins', key: 'quarters',     label: 'Quarters  (25¢)',        unit: 0.25 },
+  { section: 'Loose Coins', key: 'dimes',        label: 'Dimes  (10¢)',           unit: 0.10 },
+  { section: 'Loose Coins', key: 'nickels',      label: 'Nickels  (5¢)',          unit: 0.05 },
+  { section: 'Loose Coins', key: 'pennies',      label: 'Pennies  (1¢)',          unit: 0.01 },
+  { section: 'Coin Rolls',  key: 'quarterRolls', label: 'Quarter Rolls  ($10)',   unit: 10   },
+  { section: 'Coin Rolls',  key: 'dimeRolls',    label: 'Dime Rolls  ($5)',       unit: 5    },
+  { section: 'Coin Rolls',  key: 'nickelRolls',  label: 'Nickel Rolls  ($2)',     unit: 2    },
+  { section: 'Coin Rolls',  key: 'pennyRolls',   label: 'Penny Rolls  (50¢)',     unit: 0.50 },
+];
+
+const EMPTY_COUNTS = {
+  hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
+  quarters: '', dimes: '', nickels: '', pennies: '',
+  quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: '',
+};
+
+const SAFE_BASE = 200;
+
+// ─── Denomination Row ─────────────────────────────────────────────────────────
+
+function DRow({ label, unit, count, onChange }) {
+  const sub = (parseInt(count) || 0) * unit;
+  return (
+    <div
+      className="grid items-center py-2.5 border-b border-black/[0.055] last:border-0"
+      style={{ gridTemplateColumns: '1fr 44px 72px', gap: '8px' }}
+    >
+      <span className="text-[13px] sm:text-[14px] text-[#2a2a2a]" style={{ fontFamily: serif }}>{label}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min="0"
+        value={count}
+        onChange={e => onChange(e.target.value)}
+        placeholder="—"
+        className="text-center text-[13px] sm:text-[14px] text-[#111] bg-transparent border-0 border-b border-black/20 focus:border-black focus:outline-none pb-0.5 transition-colors duration-150 placeholder-black/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        style={{ fontFamily: mono }}
+      />
+      <span className="text-right text-[12px] sm:text-[13px] text-[#8a8378]" style={{ fontFamily: mono }}>
+        {sub > 0 ? $$(sub) : ''}
+      </span>
+    </div>
+  );
+}
+
+// ─── Section Divider ──────────────────────────────────────────────────────────
+
+function LedgerSection({ title, children }) {
+  return (
+    <div className="mb-1">
+      <div className="flex items-center gap-3 sm:gap-4 pt-6 sm:pt-7 pb-3">
+        <div className="h-px flex-1 bg-black/10" />
+        <span className="text-[10px] uppercase tracking-[0.22em] text-[#8a8378]" style={{ fontFamily: serif }}>
+          {title}
+        </span>
+        <div className="h-px flex-1 bg-black/10" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 function Closing() {
   const location = useLocation();
   const navigate = useNavigate();
   const editingLog = location.state?.editingLog;
 
-  const [counts, setCounts] = useState({
-    // Bills
-    hundreds: '',
-    fifties: '',
-    twenties: '',
-    tens: '',
-    fives: '',
-    ones: '',
-    // Coins
-    quarters: '',
-    dimes: '',
-    nickels: '',
-    pennies: '',
-    // Rolls
-    quarterRolls: '',
-    dimeRolls: '',
-    nickelRolls: '',
-    pennyRolls: ''
-  });
-
-  const [closingResult, setClosingResult] = useState('');
+  const [counts, setCounts] = useState(EMPTY_COUNTS);
   const [closer, setCloser] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
+  const [savedFlash, setSavedFlash] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
-  // Load editing data if present
   useEffect(() => {
     if (editingLog) {
       setIsEditMode(true);
       setEditingId(editingLog.id);
       setCloser(editingLog.closer);
       setCounts(editingLog.counts);
-      // The closeRegister will be triggered by the counts useEffect
     }
   }, [editingLog]);
 
-  const denominations = {
-    hundreds: 100,
-    fifties: 50,
-    twenties: 20,
-    tens: 10,
-    fives: 5,
-    ones: 1,
-    quarters: 0.25,
-    dimes: 0.10,
-    nickels: 0.05,
-    pennies: 0.01,
-    quarterRolls: 10.00,
-    dimeRolls: 5.00,
-    nickelRolls: 2.00,
-    pennyRolls: 0.50
+  const total   = DENOMINATIONS.reduce((sum, { key, unit }) => sum + (parseInt(counts[key]) || 0) * unit, 0);
+  const deposit = Math.max(0, Math.round((total - SAFE_BASE) * 100) / 100);
+  const safe    = Math.min(total, SAFE_BASE);
+
+  const buildSteps = () => {
+    if (deposit <= 0) return ['No deposit needed — drawer is at base.'];
+    const steps = [];
+    let rem = deposit;
+    const tiers = [
+      { key: 'hundreds', unit: 100, label: '$100 bills', min: 0 },
+      { key: 'fifties',  unit: 50,  label: '$50 bills',  min: 0 },
+      { key: 'twenties', unit: 20,  label: '$20 bills',  min: 0 },
+      { key: 'tens',     unit: 10,  label: '$10 bills',  min: 5 },
+      { key: 'fives',    unit: 5,   label: '$5 bills',   min: 5 },
+      { key: 'ones',     unit: 1,   label: '$1 bills',   min: 5 },
+    ];
+    for (const { key, unit, label, min } of tiers) {
+      if (rem < 0.01) break;
+      const avail = parseInt(counts[key]) || 0;
+      const pull = Math.min(Math.max(0, avail - min), Math.floor(rem / unit));
+      if (pull > 0) {
+        steps.push(`${pull} × ${label}  =  ${$$(pull * unit)}`);
+        rem = Math.round((rem - pull * unit) * 100) / 100;
+      }
+    }
+    if (rem > 0.01) steps.push(`Short ${$$(rem)} — supplement with coins`);
+    return steps;
   };
 
-  const handleCountChange = (denomination, value) => {
+  const steps = buildSteps();
+
+  const handleCountChange = (key, value) => {
     setCounts(prev => ({
       ...prev,
-      [denomination]: value === '' ? '' : Math.max(0, parseInt(value) || 0).toString()
+      [key]: value === '' ? '' : Math.max(0, parseInt(value) || 0).toString(),
     }));
   };
 
-  const calculateTotal = () => {
-    return Object.entries(counts).reduce((total, [denom, count]) => {
-      const numCount = parseInt(count) || 0;
-      return total + (numCount * denominations[denom]);
-    }, 0);
-  };
-
-  const calculateSplit = (total) => {
-    // Mock algorithm - keep $100 base + 10% for safe, rest for revenue
-    const safeAmount = Math.max(100, total * 0.1);
-    const revenueAmount = Math.max(0, total - safeAmount);
-    return { safeAmount, revenueAmount };
-  };
-
-  const closeRegister = () => {
-    const total = calculateTotal();
-    
-    if (total > 200) {
-      let revenue = Math.floor(total - 200);
-      let text = "Bills in the envelope:\n";
-      let moneyInEnvelope = 0.00;
-      
-      const money = [
-        { value: 1 }, { value: 5 }, { value: 10 }, { value: 20 }, { value: 50 }, { value: 100 }
-      ];
-      
-      const moneyAmount = [
-        { count: parseInt(counts.ones) || 0 },
-        { count: parseInt(counts.fives) || 0 },
-        { count: parseInt(counts.tens) || 0 },
-        { count: parseInt(counts.twenties) || 0 },
-        { count: parseInt(counts.fifties) || 0 },
-        { count: parseInt(counts.hundreds) || 0 }
-      ];
-
-      // Start with largest bills (100s and 50s) - take all for envelope
-      for (let i = 5; i >= 4; i--) {
-        const bills = Math.min(Math.floor(revenue / money[i].value), moneyAmount[i].count || 0);
-        revenue -= bills * money[i].value;
-        moneyInEnvelope += bills * money[i].value;
-        if (bills !== 0) {
-          text += `$${money[i].value}: ${bills}\n`;
-        }
-      }
-
-      // For smaller bills (20s, 10s, 5s, 1s) - keep at least 5 of each in register
-      for (let i = 3; i >= 0; i--) {
-        if (revenue > 0) {
-          const billsToKeep = Math.min(5, moneyAmount[i].count);
-          const availableBills = Math.max(0, moneyAmount[i].count - billsToKeep);
-          const bills = Math.min(Math.floor(revenue / money[i].value), availableBills);
-          revenue -= bills * money[i].value;
-          moneyInEnvelope += bills * money[i].value;
-          if (bills !== 0) {
-            text += `$${money[i].value}: ${bills}\n`;
-          }
-        }
-      }
-
-      const moneyInRegister = (total - moneyInEnvelope).toFixed(2);
-      text += `Money in envelope: $${moneyInEnvelope.toFixed(2)}\nMoney in register: $${moneyInRegister}`;
-      setClosingResult(text);
-    }
-  };
-
   const logRegisterClosing = async () => {
-    if (!closer.trim()) {
-      setSaveStatus('Please enter your name as the closer.');
-      return;
-    }
-
-    if (total === 0) {
-      setSaveStatus('Please enter cash counts before logging.');
-      return;
-    }
+    if (!closer.trim()) { setSaveStatus('Enter your name to save.'); return; }
+    if (total === 0)    { setSaveStatus('Enter cash counts before logging.'); return; }
 
     setIsSaving(true);
     setSaveStatus(isEditMode ? 'Updating...' : 'Saving...');
@@ -154,50 +151,32 @@ function Closing() {
         closer: closer.trim(),
         counts,
         totalAmount: total,
-        safeAmount,
-        revenueAmount,
-        closingInstructions: closingResult
+        safeAmount: safe,
+        revenueAmount: deposit,
+        closingInstructions: steps.join('\n'),
       };
-
       if (isEditMode) {
         await logService.updateLog(editingId, closingData);
-        setSaveStatus('Register closing updated successfully!');
       } else {
         await logService.saveLog(closingData);
-        setSaveStatus('Register closing logged successfully!');
       }
-      
-      // Clear form and navigate back to logs after successful save
-      setTimeout(() => {
-        setCounts({
-          hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
-          quarters: '', dimes: '', nickels: '', pennies: '',
-          quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
-        });
-        setClosingResult('');
-        setCloser('');
-        setSaveStatus('');
-        setIsEditMode(false);
-        setEditingId(null);
-        navigate('/logs');
-      }, 1500);
-
+      setSavedFlash(true);
+      setCounts(EMPTY_COUNTS);
+      setCloser('');
+      setSaveStatus('');
+      setIsEditMode(false);
+      setEditingId(null);
+      setTimeout(() => { setSavedFlash(false); navigate('/logs'); }, 1500);
     } catch (error) {
-      console.error('Error logging register closing:', error);
-      setSaveStatus(error.message || 'Error saving register closing. Please try again.');
+      setSaveStatus(error.message || 'Error saving. Please try again.');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleCancel = () => {
-    if (confirm('Are you sure you want to cancel? All changes will be lost.')) {
-      setCounts({
-        hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
-        quarters: '', dimes: '', nickels: '', pennies: '',
-        quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
-      });
-      setClosingResult('');
+    if (confirm('Cancel editing? Changes will be lost.')) {
+      setCounts(EMPTY_COUNTS);
       setCloser('');
       setSaveStatus('');
       setIsEditMode(false);
@@ -206,350 +185,273 @@ function Closing() {
     }
   };
 
-  // Auto-update
-  useEffect(() => {
-    if (Object.values(counts).some(count => count !== '')) {
-      closeRegister();
-    } else {
-      setClosingResult('');
-    }
-  }, [counts]);
-
-  const total = calculateTotal();
-  const { safeAmount, revenueAmount } = calculateSplit(total);
-
   const generatePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPosition = 20;
-
-    // Header
-    doc.setFontSize(20);
-    doc.setFont(undefined, 'bold');
-    doc.text('Register Closing Report', pageWidth / 2, yPosition, { align: 'center' });
-    
-    yPosition += 10;
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Date: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
-    doc.text(`Closer: ${closer || 'N/A'}`, pageWidth / 2, yPosition + 5, { align: 'center' });
-
-    yPosition += 20;
-    
-    // Cash Count Section
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Cash Count Breakdown', 14, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    
-    // Bills
-    doc.setFont(undefined, 'bold');
-    doc.text('Bills:', 14, yPosition);
-    yPosition += 5;
-    doc.setFont(undefined, 'normal');
-    
-    const billData = [
-      { label: '$100 Bills', key: 'hundreds', value: denominations.hundreds },
-      { label: '$50 Bills', key: 'fifties', value: denominations.fifties },
-      { label: '$20 Bills', key: 'twenties', value: denominations.twenties },
-      { label: '$10 Bills', key: 'tens', value: denominations.tens },
-      { label: '$5 Bills', key: 'fives', value: denominations.fives },
-      { label: '$1 Bills', key: 'ones', value: denominations.ones }
-    ];
-
-    billData.forEach(({ label, key, value }) => {
+    let y = 20;
+    doc.setFontSize(18); doc.setFont(undefined, 'bold');
+    doc.text('Register Closing Report', pageWidth / 2, y, { align: 'center' }); y += 10;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    doc.text(`Date: ${new Date().toLocaleString()}`, pageWidth / 2, y, { align: 'center' }); y += 5;
+    doc.text(`Closer: ${closer || 'N/A'}`, pageWidth / 2, y, { align: 'center' }); y += 15;
+    doc.setFontSize(13); doc.setFont(undefined, 'bold');
+    doc.text('Cash Count', 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    DENOMINATIONS.forEach(({ label, key, unit }) => {
       const count = parseInt(counts[key]) || 0;
-      const subtotal = (count * value).toFixed(2);
-      doc.text(`${label}: ${count} × $${value.toFixed(2)} = $${subtotal}`, 20, yPosition);
-      yPosition += 5;
+      if (count > 0) { doc.text(`${label}: ${count} × ${$$(unit)} = ${$$(count * unit)}`, 20, y); y += 5; }
     });
+    y += 5;
+    doc.setFontSize(13); doc.setFont(undefined, 'bold');
+    doc.text('Summary', 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    doc.text(`Drawer Total: ${$$(total)}`, 20, y); y += 6;
+    doc.text(`Deposit: ${$$(deposit)}`, 20, y); y += 6;
+    doc.text(`Safe: ${$$(safe)}`, 20, y); y += 10;
+    doc.setFontSize(13); doc.setFont(undefined, 'bold');
+    doc.text('Closing Instructions', 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    steps.forEach(line => { if (y > 270) { doc.addPage(); y = 20; } doc.text(line, 20, y); y += 5; });
+    doc.save(`closing-${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
-    yPosition += 3;
-    
-    // Coins
-    doc.setFont(undefined, 'bold');
-    doc.text('Coins:', 14, yPosition);
-    yPosition += 5;
-    doc.setFont(undefined, 'normal');
-    
-    const coinData = [
-      { label: 'Quarters', key: 'quarters', value: denominations.quarters },
-      { label: 'Dimes', key: 'dimes', value: denominations.dimes },
-      { label: 'Nickels', key: 'nickels', value: denominations.nickels },
-      { label: 'Pennies', key: 'pennies', value: denominations.pennies }
-    ];
-
-    coinData.forEach(({ label, key, value }) => {
-      const count = parseInt(counts[key]) || 0;
-      const subtotal = (count * value).toFixed(2);
-      doc.text(`${label}: ${count} × $${value.toFixed(2)} = $${subtotal}`, 20, yPosition);
-      yPosition += 5;
-    });
-
-    yPosition += 3;
-    
-    // Rolls
-    doc.setFont(undefined, 'bold');
-    doc.text('Rolls:', 14, yPosition);
-    yPosition += 5;
-    doc.setFont(undefined, 'normal');
-    
-    const rollData = [
-      { label: 'Quarter Rolls', key: 'quarterRolls', value: denominations.quarterRolls },
-      { label: 'Dime Rolls', key: 'dimeRolls', value: denominations.dimeRolls },
-      { label: 'Nickel Rolls', key: 'nickelRolls', value: denominations.nickelRolls },
-      { label: 'Penny Rolls', key: 'pennyRolls', value: denominations.pennyRolls }
-    ];
-
-    rollData.forEach(({ label, key, value }) => {
-      const count = parseInt(counts[key]) || 0;
-      const subtotal = (count * value).toFixed(2);
-      doc.text(`${label}: ${count} × $${value.toFixed(2)} = $${subtotal}`, 20, yPosition);
-      yPosition += 5;
-    });
-
-    yPosition += 8;
-    
-    // Summary Section
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Summary', 14, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(12);
-    doc.text(`Total Cash Count: $${total.toFixed(2)}`, 20, yPosition);
-    yPosition += 8;
-    doc.text(`Revenue Deposit: $${revenueAmount.toFixed(2)}`, 20, yPosition);
-    yPosition += 6;
-    doc.text(`Safe Storage: $${safeAmount.toFixed(2)}`, 20, yPosition);
-    yPosition += 10;
-
-    // Closing Instructions
-    if (closingResult) {
-      doc.setFontSize(14);
-      doc.text('Closing Instructions', 14, yPosition);
-      yPosition += 8;
-      
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
-      const instructions = closingResult.split('\n');
-      instructions.forEach(line => {
-        if (yPosition > 270) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        doc.text(line, 20, yPosition);
-        yPosition += 5;
-      });
-    }
-
-    // Save PDF
-    const fileName = `register-closing-${new Date().toISOString().split('T')[0]}-${Date.now()}.pdf`;
-    doc.save(fileName);
+  const saveBtn = {
+    active: closer.trim() && total > 0,
+    label: isSaving ? 'Saving…' : savedFlash ? 'Closing Saved' : isEditMode ? 'Update Closing' : 'Save Closing',
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16 relative overflow-hidden">
+    <div className="min-h-screen bg-[#F7F4EE]" style={{ fontFamily: serif }}>
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12 pb-28 lg:pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_288px] gap-10 lg:gap-14">
 
-      <div className="absolute inset-0">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="dollar-sign-white">$</div>
-        ))}
-      </div>
+          {/* ── Left: ledger form ───────────────────────────────────── */}
+          <div>
+            <div className="mb-7 sm:mb-9">
+              <h2
+                className="text-[28px] sm:text-[34px] leading-tight text-[#111]"
+                style={{ fontFamily: serif, letterSpacing: '-0.01em' }}
+              >
+                {isEditMode ? 'Edit Closing' : 'Register Closing'}
+              </h2>
+              <p className="text-[13px] sm:text-[14px] text-[#8a8378] italic mt-1.5" style={{ fontFamily: serif }}>
+                Enter denomination counts to calculate your totals.
+              </p>
+              {isEditMode && (
+                <div
+                  className="mt-3 inline-block text-[10px] uppercase tracking-[0.15em] text-[#8a8378] border border-black/15 px-3 py-1"
+                  style={{ fontFamily: serif }}
+                >
+                  Edit Mode
+                </div>
+              )}
+            </div>
 
-      <div className="text-center relative z-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">
-          {isEditMode ? 'Edit Register Closing' : 'Register Closing Calculator'}
-        </h1>
-        <p className="text-xl text-gray-600 mb-6">
-          {isEditMode ? 'Update the register closing information' : 'Count your cash and let us handle the split'}
-        </p>
-        {isEditMode && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg inline-block mb-4">
-            Editing mode - Make your changes and click Update
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-8 relative z-10">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800">Count Your Cash</h2>
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700">Closer:</label>
+            {/* Closer name */}
+            <div className="mb-7 sm:mb-8 pb-6 sm:pb-7 border-b border-black/[0.08]">
+              <label className="block text-[10px] uppercase tracking-[0.22em] text-[#8a8378] mb-3" style={{ fontFamily: serif }}>
+                Closer Name
+              </label>
               <input
                 type="text"
                 value={closer}
-                onChange={(e) => setCloser(e.target.value)}
-                placeholder="Your name"
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                onChange={e => setCloser(e.target.value)}
+                placeholder="Enter your full name"
+                className="w-full text-[15px] sm:text-[17px] italic bg-transparent border-0 border-b border-black/[0.18] focus:border-black focus:outline-none pb-1.5 transition-colors duration-150 placeholder-black/20 text-[#111]"
+                style={{ fontFamily: serif }}
               />
             </div>
-          </div>
-          
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4 text-gray-700">Bills</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[
-                { key: 'hundreds', label: '$100', color: 'bg-gray-100' },
-                { key: 'fifties', label: '$50', color: 'bg-gray-100' },
-                { key: 'twenties', label: '$20', color: 'bg-gray-100' },
-                { key: 'tens', label: '$10', color: 'bg-gray-100' },
-                { key: 'fives', label: '$5', color: 'bg-gray-100' },
-                { key: 'ones', label: '$1', color: 'bg-gray-100' }
-              ].map(({ key, label, color }) => (
-                <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
-                  <span className="font-medium mb-2">{label}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={counts[key]}
-                    onChange={(e) => handleCountChange(key, e.target.value)}
-                    placeholder="0"
-                    className="w-16 px-2 py-1 border-2 border-gray-500 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 shadow-inner"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="mb-6">
-            <h3 className="text-lg font-medium mb-4 text-gray-700">Coins</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { key: 'quarters', label: '$0.25', color: 'bg-gray-100' },
-                { key: 'dimes', label: '$0.10', color: 'bg-gray-100' },
-                { key: 'nickels', label: '$0.05', color: 'bg-gray-100' },
-                { key: 'pennies', label: '$0.01', color: 'bg-gray-100' }
-              ].map(({ key, label, color }) => (
-                <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
-                  <span className="font-medium mb-2">{label}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={counts[key]}
-                    onChange={(e) => handleCountChange(key, e.target.value)}
-                    placeholder="0"
-                    className="w-16 px-2 py-1 border-2 border-gray-500 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 shadow-inner"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium mb-4 text-gray-700">Rolls</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { key: 'quarterRolls', label: '$10.00', color: 'bg-gray-100' },
-                { key: 'dimeRolls', label: '$5.00', color: 'bg-gray-100' },
-                { key: 'nickelRolls', label: '$2.00', color: 'bg-gray-100' },
-                { key: 'pennyRolls', label: '$0.50', color: 'bg-gray-100' }
-              ].map(({ key, label, color }) => (
-                <div key={key} className={`flex flex-col items-center p-3 rounded-lg ${color} border-2 border-gray-400 shadow-md hover:shadow-lg transition-shadow`} style={{borderImage: 'linear-gradient(45deg, #c0c0c0, #e6e6e6, #808080) 1'}}>
-                  <span className="font-medium mb-2">{label}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={counts[key]}
-                    onChange={(e) => handleCountChange(key, e.target.value)}
-                    placeholder="0"
-                    className="w-16 px-2 py-1 border-2 border-gray-500 rounded text-center focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 shadow-inner"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-semibold mb-6 text-gray-800">Calculation Results</h2>
-          
-          <div className="space-y-6">
-
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-lg font-medium text-gray-700 mb-2">Total Cash Count</h3>
-              <p className="text-3xl font-bold text-gray-900">${total.toFixed(2)}</p>
-            </div>
-
-            {closingResult && (
-              <div className="bg-green-50 rounded-lg p-4 border-l-4 border-green-500">
-                <h3 className="text-lg font-medium text-green-800 mb-2">Register Closing Instructions</h3>
-                <pre className="text-sm text-green-700 whitespace-pre-line">{closingResult}</pre>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-500">
-                <h3 className="text-lg font-medium text-yellow-800 mb-1">Revenue Deposit</h3>
-                <p className="text-2xl font-bold text-yellow-700">${revenueAmount.toFixed(2)}</p>
-                <p className="text-sm text-yellow-600 mt-1">Amount to deposit for revenue</p>
-              </div>
-
-              <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-                <h3 className="text-lg font-medium text-blue-800 mb-1">Safe Storage</h3>
-                <p className="text-2xl font-bold text-blue-700">${safeAmount.toFixed(2)}</p>
-                <p className="text-sm text-blue-600 mt-1">Amount to keep in safe</p>
-              </div>
-            </div>
-            <div className="space-y-3 pt-4">
-              {isEditMode && (
-                <button 
-                  onClick={handleCancel}
-                  className="w-full bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
+            {/* Column headers */}
+            <div
+              className="grid items-center pb-2"
+              style={{ gridTemplateColumns: '1fr 44px 72px', gap: '8px' }}
+            >
+              {['Denomination', 'Qty', 'Amount'].map((h, i) => (
+                <span
+                  key={h}
+                  className={`text-[10px] uppercase tracking-[0.2em] text-[#8a8378] ${i === 2 ? 'text-right' : i === 1 ? 'text-center' : ''}`}
+                  style={{ fontFamily: serif }}
                 >
-                  Cancel Editing
+                  {h}
+                </span>
+              ))}
+            </div>
+            <div className="h-px bg-black/15" />
+
+            {['Bills', 'Loose Coins', 'Coin Rolls'].map(section => (
+              <LedgerSection key={section} title={section}>
+                {DENOMINATIONS.filter(d => d.section === section).map(({ key, label, unit }) => (
+                  <DRow
+                    key={key}
+                    label={label}
+                    unit={unit}
+                    count={counts[key]}
+                    onChange={v => handleCountChange(key, v)}
+                  />
+                ))}
+              </LedgerSection>
+            ))}
+
+            {/* Actions */}
+            <div className="mt-8 sm:mt-10 pt-6 sm:pt-7 border-t border-black/[0.08] flex flex-wrap items-center gap-3 sm:gap-4">
+              {isEditMode && (
+                <button
+                  onClick={handleCancel}
+                  className="px-5 sm:px-6 py-2.5 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] border border-black/20 text-[#8a8378] hover:border-black hover:text-[#111] active:opacity-60 transition-colors"
+                  style={{ fontFamily: serif, borderRadius: '1px' }}
+                >
+                  Cancel
                 </button>
               )}
-              
-              <button 
+              <button
                 onClick={generatePDF}
                 disabled={total === 0}
-                className="w-full bg-purple-500 text-white py-3 rounded-lg hover:bg-purple-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                className="px-5 sm:px-6 py-2.5 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] border border-black/20 text-[#8a8378] hover:border-black hover:text-[#111] active:opacity-60 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ fontFamily: serif, borderRadius: '1px' }}
               >
-                📄 Download PDF Report
+                PDF
               </button>
-              
-              <button 
-                onClick={() => {
-                  setCounts({
-                    hundreds: '', fifties: '', twenties: '', tens: '', fives: '', ones: '',
-                    quarters: '', dimes: '', nickels: '', pennies: '',
-                    quarterRolls: '', dimeRolls: '', nickelRolls: '', pennyRolls: ''
-                  });
-                  setClosingResult('');
-                }}
-                className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium"
-              >
-                Clear All
-              </button>
-              
-              {saveStatus && (
-                <div className={`p-3 rounded-lg text-center ${
-                  saveStatus.includes('Error') 
-                    ? 'bg-red-50 text-red-700 border border-red-200'
-                    : saveStatus.includes('successfully')
-                    ? 'bg-green-50 text-green-700 border border-green-200'
-                    : 'bg-blue-50 text-blue-700 border border-blue-200'
-                }`}>
-                  {saveStatus}
-                </div>
-              )}
-
-              <button 
+              <button
                 onClick={logRegisterClosing}
                 disabled={isSaving || !closer.trim() || total === 0}
-                className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                className="px-6 sm:px-8 py-2.5 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed"
+                style={{
+                  fontFamily: serif,
+                  background: savedFlash ? '#333' : saveBtn.active ? '#111' : '#c9c5be',
+                  color: saveBtn.active ? '#F7F4EE' : '#8a8378',
+                  borderRadius: '1px',
+                }}
               >
-                {isSaving ? (isEditMode ? 'Updating...' : 'Logging...') : (isEditMode ? 'Update Register Closing' : 'Log Register Closing')}
+                {saveBtn.label}
               </button>
+              {saveStatus && !savedFlash && (
+                <p className="w-full text-[12px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
+                  {saveStatus}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Right: summary panel (desktop) ─────────────────────── */}
+          <div className="hidden lg:block">
+            <div className="sticky top-[85px]">
+              <SummaryPanel total={total} deposit={deposit} safe={safe} steps={steps} />
             </div>
           </div>
         </div>
+      </main>
+
+      {/* ── Mobile sticky bottom summary bar ─────────────────────── */}
+      <div
+        className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-black/[0.09] z-30"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="px-5 py-3 flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-[#8a8378] mb-0.5" style={{ fontFamily: serif }}>
+              Total
+            </div>
+            <div className="text-[22px] leading-none text-[#111]" style={{ fontFamily: mono, letterSpacing: '-0.02em' }}>
+              {$$(total)}
+            </div>
+          </div>
+          <div className="flex items-center gap-5">
+            <div className="text-right">
+              <div className="text-[9px] uppercase tracking-[0.15em] text-[#8a8378] mb-0.5" style={{ fontFamily: serif }}>
+                Deposit
+              </div>
+              <div className="text-[15px] leading-none text-[#111]" style={{ fontFamily: mono }}>
+                {$$(deposit)}
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[9px] uppercase tracking-[0.15em] text-[#8a8378] mb-0.5" style={{ fontFamily: serif }}>
+                Safe
+              </div>
+              <div className="text-[15px] leading-none text-[#8a8378]" style={{ fontFamily: mono }}>
+                {$$(safe)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer — desktop only */}
+      <footer className="hidden lg:block mx-auto max-w-5xl px-6 py-8 mt-6">
+        <div className="h-px bg-black/[0.07] mb-5" />
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
+            ChaChing — Register Closing Management
+          </span>
+          <span className="text-[10px] text-[#8a8378]" style={{ fontFamily: serif, letterSpacing: '0.08em' }}>
+            © 2026
+          </span>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// ─── Summary Panel (desktop sidebar) ─────────────────────────────────────────
+
+function SummaryPanel({ total, deposit, safe, steps }) {
+  return (
+    <div className="bg-white border border-black/[0.09]" style={{ borderRadius: '1px' }}>
+      <div className="px-6 py-4 border-b border-black/[0.07]">
+        <span className="text-[10px] uppercase tracking-[0.22em] text-[#8a8378]" style={{ fontFamily: serif }}>
+          Summary
+        </span>
+      </div>
+
+      <div className="px-6 py-7 border-b border-black/[0.07]">
+        <div className="text-[10px] uppercase tracking-[0.2em] text-[#8a8378] mb-3" style={{ fontFamily: serif }}>
+          Drawer Total
+        </div>
+        <div className="text-[44px] text-[#111] leading-none" style={{ fontFamily: mono, letterSpacing: '-0.03em' }}>
+          {$$(total)}
+        </div>
+        {total > 0 && (
+          <p className="text-[11px] italic text-[#8a8378] mt-2.5" style={{ fontFamily: serif }}>
+            {total >= 200 ? 'Deposit required' : 'Under base — no deposit needed'}
+          </p>
+        )}
+      </div>
+
+      <div className="px-6 py-6 border-b border-black/[0.07]">
+        <div className="grid grid-cols-2 gap-6">
+          {[{ label: 'Deposit', value: deposit, sub: 'to envelope' }, { label: 'Safe', value: safe, sub: 'stays in drawer' }].map(({ label, value, sub }) => (
+            <div key={label}>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[#8a8378] mb-2" style={{ fontFamily: serif }}>
+                {label}
+              </div>
+              <div className="text-[22px] text-[#111] leading-none" style={{ fontFamily: mono }}>
+                {$$(value)}
+              </div>
+              <div className="text-[10px] italic text-[#8a8378] mt-1.5" style={{ fontFamily: serif }}>
+                {sub}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-6 py-6">
+        <div className="text-[10px] uppercase tracking-[0.22em] text-[#8a8378] mb-4" style={{ fontFamily: serif }}>
+          Closing Instructions
+        </div>
+        <ol className="space-y-3">
+          {steps.map((s, i) => (
+            <li key={i} className="flex items-start gap-3">
+              <span className="text-[11px] italic text-[#8a8378] mt-0.5 leading-none min-w-[16px]" style={{ fontFamily: serif }}>
+                {i + 1}.
+              </span>
+              <span className="text-[12px] text-[#2a2a2a] leading-snug" style={{ fontFamily: mono }}>
+                {s}
+              </span>
+            </li>
+          ))}
+        </ol>
       </div>
     </div>
   );

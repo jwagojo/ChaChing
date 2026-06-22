@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logService } from '../services/logService';
+import { Trash2, Archive } from 'lucide-react';
 import jsPDF from 'jspdf';
+
+const serif = '"Times New Roman", Times, Georgia, serif';
+const mono  = '"Courier New", Courier, monospace';
+
+const $$ = (n) => Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+const fmtDate = (iso) =>
+  new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 function Logs() {
   const navigate = useNavigate();
@@ -10,36 +19,29 @@ function Logs() {
   const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadClosings();
-  }, [selectedDate]);
+  useEffect(() => { loadClosings(); }, [selectedDate]);
 
   const loadClosings = async () => {
     setLoading(true);
     try {
-      let data;
-      if (selectedDate) {
-        data = await logService.getLogsByDate(selectedDate);
-      } else {
-        data = await logService.getAllLogs();
-      }
+      const data = selectedDate
+        ? await logService.getLogsByDate(selectedDate)
+        : await logService.getAllLogs();
       setClosings(data);
     } catch (error) {
       console.error('Error loading closings:', error);
-      alert('Error loading data. Please make sure the server is running.');
+      alert('Error loading data. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (closing) => {
-    // Navigate to closing page with the log data
     navigate('/closing', { state: { editingLog: closing } });
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this log?')) return;
-    
+    if (!confirm('Delete this closing log?')) return;
     try {
       await logService.deleteLog(id);
       loadClosings();
@@ -52,254 +54,148 @@ function Logs() {
   const generatePDF = (closing) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPosition = 20;
-
-    // Header
-    doc.setFontSize(20);
-    doc.setFont(undefined, 'bold');
-    doc.text('Register Closing Report', pageWidth / 2, yPosition, { align: 'center' });
-    
-    yPosition += 10;
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Date: ${new Date(closing.timestamp).toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
-    doc.text(`Closer: ${closing.closer}`, pageWidth / 2, yPosition + 5, { align: 'center' });
-
-    yPosition += 20;
-    
-    // Cash Count Section
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Cash Count Breakdown', 14, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-
-    const denominations = {
-      hundreds: 100, fifties: 50, twenties: 20, tens: 10, fives: 5, ones: 1,
-      quarters: 0.25, dimes: 0.10, nickels: 0.05, pennies: 0.01,
-      quarterRolls: 10.00, dimeRolls: 5.00, nickelRolls: 2.00, pennyRolls: 0.50
-    };
-    
-    // Bills
-    doc.setFont(undefined, 'bold');
-    doc.text('Bills:', 14, yPosition);
-    yPosition += 5;
-    doc.setFont(undefined, 'normal');
-    
-    const billData = [
-      { label: '$100 Bills', key: 'hundreds', value: 100 },
-      { label: '$50 Bills', key: 'fifties', value: 50 },
-      { label: '$20 Bills', key: 'twenties', value: 20 },
-      { label: '$10 Bills', key: 'tens', value: 10 },
-      { label: '$5 Bills', key: 'fives', value: 5 },
-      { label: '$1 Bills', key: 'ones', value: 1 }
-    ];
-
-    billData.forEach(({ label, key, value }) => {
-      const count = parseInt(closing.counts[key]) || 0;
-      const subtotal = (count * value).toFixed(2);
-      doc.text(`${label}: ${count} × $${value.toFixed(2)} = $${subtotal}`, 20, yPosition);
-      yPosition += 5;
-    });
-
-    yPosition += 3;
-    
-    // Coins
-    doc.setFont(undefined, 'bold');
-    doc.text('Coins:', 14, yPosition);
-    yPosition += 5;
-    doc.setFont(undefined, 'normal');
-    
-    const coinData = [
-      { label: 'Quarters', key: 'quarters', value: 0.25 },
-      { label: 'Dimes', key: 'dimes', value: 0.10 },
-      { label: 'Nickels', key: 'nickels', value: 0.05 },
-      { label: 'Pennies', key: 'pennies', value: 0.01 }
-    ];
-
-    coinData.forEach(({ label, key, value }) => {
-      const count = parseInt(closing.counts[key]) || 0;
-      const subtotal = (count * value).toFixed(2);
-      doc.text(`${label}: ${count} × $${value.toFixed(2)} = $${subtotal}`, 20, yPosition);
-      yPosition += 5;
-    });
-
-    yPosition += 3;
-    
-    // Rolls
-    doc.setFont(undefined, 'bold');
-    doc.text('Rolls:', 14, yPosition);
-    yPosition += 5;
-    doc.setFont(undefined, 'normal');
-    
-    const rollData = [
-      { label: 'Quarter Rolls', key: 'quarterRolls', value: 10.00 },
-      { label: 'Dime Rolls', key: 'dimeRolls', value: 5.00 },
-      { label: 'Nickel Rolls', key: 'nickelRolls', value: 2.00 },
-      { label: 'Penny Rolls', key: 'pennyRolls', value: 0.50 }
-    ];
-
-    rollData.forEach(({ label, key, value }) => {
-      const count = parseInt(closing.counts[key]) || 0;
-      const subtotal = (count * value).toFixed(2);
-      doc.text(`${label}: ${count} × $${value.toFixed(2)} = $${subtotal}`, 20, yPosition);
-      yPosition += 5;
-    });
-
-    yPosition += 8;
-    
-    // Summary Section
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Summary', 14, yPosition);
-    yPosition += 8;
-    
-    doc.setFontSize(12);
-    doc.text(`Total Cash Count: $${closing.totalAmount.toFixed(2)}`, 20, yPosition);
-    yPosition += 8;
-    doc.text(`Revenue Deposit: $${closing.revenueAmount.toFixed(2)}`, 20, yPosition);
-    yPosition += 6;
-    doc.text(`Safe Storage: $${closing.safeAmount.toFixed(2)}`, 20, yPosition);
-    yPosition += 10;
-
-    // Closing Instructions
-    if (closing.closingInstructions) {
-      doc.setFontSize(14);
-      doc.text('Closing Instructions', 14, yPosition);
-      yPosition += 8;
-      
-      doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
-      const instructions = closing.closingInstructions.split('\n');
-      instructions.forEach(line => {
-        if (yPosition > 270) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        doc.text(line, 20, yPosition);
-        yPosition += 5;
-      });
-    }
-
-    // Save PDF
-    const fileName = `closing-${closing.closer}-${new Date(closing.timestamp).toISOString().split('T')[0]}.pdf`;
-    doc.save(fileName);
+    let y = 20;
+    doc.setFontSize(18); doc.setFont(undefined, 'bold');
+    doc.text('Register Closing Report', pageWidth / 2, y, { align: 'center' }); y += 10;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    doc.text(`Date: ${new Date(closing.timestamp).toLocaleString()}`, pageWidth / 2, y, { align: 'center' }); y += 5;
+    doc.text(`Closer: ${closing.closer}`, pageWidth / 2, y, { align: 'center' }); y += 15;
+    doc.setFontSize(12); doc.setFont(undefined, 'bold');
+    doc.text('Summary', 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont(undefined, 'normal');
+    doc.text(`Total: ${$$(closing.totalAmount)}`, 20, y); y += 6;
+    doc.text(`Deposit: ${$$(closing.revenueAmount)}`, 20, y); y += 6;
+    doc.text(`Safe: ${$$(closing.safeAmount)}`, 20, y);
+    doc.save(`closing-${closing.closer}-${new Date(closing.timestamp).toISOString().split('T')[0]}.pdf`);
   };
 
-  const filteredClosings = filterCloser
-    ? closings.filter(closing =>
-        closing.closer.toLowerCase().includes(filterCloser.toLowerCase())
-      )
-    : closings;
+  const filteredClosings = closings.filter(c =>
+    !filterCloser || c.closer.toLowerCase().includes(filterCloser.toLowerCase())
+  );
+
+  const totalDeposit = filteredClosings.reduce((s, l) => s + (l.revenueAmount || 0), 0);
+  const totalGross   = filteredClosings.reduce((s, l) => s + (l.totalAmount   || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-16">
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold text-gray-900 mb-6">Closing Logs</h1>
-        <p className="text-xl text-gray-600">
-          Track all your register closing calculations and history
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#F7F4EE]" style={{ fontFamily: serif }}>
+      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-12">
 
-      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Page title + filter */}
+        <div className="flex flex-col gap-5 mb-8 sm:mb-10 pb-5 sm:pb-6 border-b border-black/[0.08]">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            />
+            <h2
+              className="text-[28px] sm:text-[34px] leading-tight text-[#111]"
+              style={{ fontFamily: serif, letterSpacing: '-0.01em' }}
+            >
+              Closing Logs
+            </h2>
+            <p className="text-[13px] italic text-[#8a8378] mt-1" style={{ fontFamily: serif }}>
+              {filteredClosings.length} {filteredClosings.length === 1 ? 'entry' : 'entries'} on record
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Closer</label>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
+            <div>
+              <label className="block text-[10px] uppercase tracking-[0.18em] text-[#8a8378] mb-2" style={{ fontFamily: serif }}>
+                Date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="w-full sm:w-auto text-[13px] bg-transparent border-0 border-b border-black/20 focus:border-black focus:outline-none pb-1.5 text-[#111] transition-colors"
+                style={{ fontFamily: serif }}
+              />
+            </div>
             <input
               type="text"
-              placeholder="Enter closer name..."
+              placeholder="Filter by name…"
               value={filterCloser}
-              onChange={(e) => setFilterCloser(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              onChange={e => setFilterCloser(e.target.value)}
+              className="text-[13px] italic bg-transparent border-0 border-b border-black/20 focus:border-black focus:outline-none pb-1.5 transition-colors duration-150 placeholder-black/25 text-[#111]"
+              style={{ fontFamily: serif }}
             />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSelectedDate('');
-                setFilterCloser('');
-              }}
-              className="w-full bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors"
-            >
-              Clear Filters
-            </button>
+            {(selectedDate || filterCloser) && (
+              <button
+                onClick={() => { setSelectedDate(''); setFilterCloser(''); }}
+                className="self-start sm:self-auto text-[11px] uppercase tracking-[0.15em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors"
+                style={{ fontFamily: serif }}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading logs...</p>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {filteredClosings.length > 0 ? (
+        {loading ? (
+          <div className="py-24 text-center">
+            <div className="w-6 h-6 border border-black/20 border-t-black/60 rounded-full animate-spin mx-auto" />
+            <p className="text-[13px] italic text-[#8a8378] mt-4" style={{ fontFamily: serif }}>Loading…</p>
+          </div>
+        ) : filteredClosings.length === 0 ? (
+          <div className="py-20 sm:py-24 text-center border-t border-b border-black/[0.07]">
+            <Archive size={20} className="mx-auto mb-4 text-black/15" />
+            <p className="text-[15px] sm:text-[16px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
+              {filterCloser || selectedDate ? 'No entries match your filter.' : 'No closings have been logged yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="bg-white border border-black/[0.09] overflow-hidden" style={{ borderRadius: '1px' }}>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-orange-500 text-white">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Time</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Total Cash</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Revenue</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Safe</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Employee</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium uppercase tracking-wider">Actions</th>
+              <table className="w-full min-w-[500px]">
+                <thead>
+                  <tr className="border-b border-black/10">
+                    {['Date', 'Closer', 'Total', 'Deposit', 'Safe', ''].map((col, i) => (
+                      <th
+                        key={i}
+                        className={`px-3 sm:px-5 py-3 sm:py-4 text-[10px] uppercase tracking-[0.15em] sm:tracking-[0.18em] text-[#8a8378] font-normal whitespace-nowrap ${i >= 2 && i < 5 ? 'text-right' : 'text-left'}`}
+                        style={{ fontFamily: serif }}
+                      >
+                        {col}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredClosings.map((closing) => (
-                    <tr key={closing.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(closing.timestamp).toLocaleDateString()}
+                <tbody>
+                  {filteredClosings.map(log => (
+                    <tr key={log.id} className="border-b border-black/[0.05] last:border-0 hover:bg-[#F7F4EE]/60 transition-colors group">
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-[11px] sm:text-[12px] italic text-[#8a8378] whitespace-nowrap" style={{ fontFamily: serif }}>
+                        {log.timestamp ? fmtDate(new Date(log.timestamp).toISOString().split('T')[0]) : log.date}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(closing.timestamp).toLocaleTimeString()}
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-[13px] sm:text-[14px] text-[#111]" style={{ fontFamily: serif }}>
+                        {log.closer}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        ${closing.totalAmount.toFixed(2)}
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right text-[13px] sm:text-[14px] text-[#111] whitespace-nowrap" style={{ fontFamily: mono }}>
+                        {$$(log.totalAmount)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                        ${closing.revenueAmount.toFixed(2)}
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right text-[12px] sm:text-[13px] text-[#2a2a2a] whitespace-nowrap" style={{ fontFamily: mono }}>
+                        {$$(log.revenueAmount)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                        ${closing.safeAmount.toFixed(2)}
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-right text-[12px] sm:text-[13px] text-[#8a8378] whitespace-nowrap" style={{ fontFamily: mono }}>
+                        {$$(log.safeAmount)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {closing.closer}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <div className="flex space-x-3">
+                      <td className="px-2 sm:px-4 py-3 sm:py-4 text-right">
+                        <div className="flex items-center justify-end gap-2 sm:gap-3 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button
-                            onClick={() => generatePDF(closing)}
-                            className="text-purple-600 hover:text-purple-800"
-                            title="Download PDF"
+                            onClick={() => generatePDF(log)}
+                            className="text-[10px] uppercase tracking-[0.1em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors hidden sm:inline"
+                            style={{ fontFamily: serif }}
                           >
-                            📄 PDF
+                            PDF
                           </button>
                           <button
-                            onClick={() => handleEdit(closing)}
-                            className="text-blue-600 hover:text-blue-800"
+                            onClick={() => handleEdit(log)}
+                            className="text-[10px] uppercase tracking-[0.1em] text-[#8a8378] hover:text-[#111] active:opacity-60 transition-colors hidden sm:inline"
+                            style={{ fontFamily: serif }}
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDelete(closing.id)}
-                            className="text-red-600 hover:text-red-800"
+                            onClick={() => handleDelete(log.id)}
+                            className="text-black/25 hover:text-[#991b1b] active:opacity-60 transition-colors p-1"
                           >
-                            Delete
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </td>
@@ -308,13 +204,39 @@ function Logs() {
                 </tbody>
               </table>
             </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <p>No register closings found.</p>
+
+            {/* Table footer */}
+            <div className="border-t border-black/[0.07] px-3 sm:px-5 py-3 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 bg-[#F7F4EE]/40">
+              <span className="text-[11px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
+                {filteredClosings.length} closings shown
+              </span>
+              <div className="flex items-center gap-4 sm:gap-7">
+                <span className="text-[11px] text-[#8a8378]" style={{ fontFamily: serif }}>
+                  Deposited:{' '}
+                  <span style={{ fontFamily: mono, color: '#111' }}>{$$(totalDeposit)}</span>
+                </span>
+                <span className="text-[11px] text-[#8a8378]" style={{ fontFamily: serif }}>
+                  Gross:{' '}
+                  <span style={{ fontFamily: mono, color: '#111' }}>{$$(totalGross)}</span>
+                </span>
+              </div>
             </div>
-          )}
+          </div>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8 mt-4">
+        <div className="h-px bg-black/[0.07] mb-4 sm:mb-5" />
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] italic text-[#8a8378]" style={{ fontFamily: serif }}>
+            ChaChing — Register Closing Management
+          </span>
+          <span className="text-[10px] text-[#8a8378]" style={{ fontFamily: serif, letterSpacing: '0.08em' }}>
+            © 2026
+          </span>
         </div>
-      )}
+      </footer>
     </div>
   );
 }

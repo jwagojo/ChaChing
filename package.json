@@ -4,19 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "set NODE_OPTIONS=--no-deprecation && vite",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "server": "cd server && npm start",
-    "start": "set NODE_OPTIONS=--no-deprecation && concurrently \"npm run dev\" \"npm run server\""
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@azure/cosmos": "^4.7.0",
+    "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.1.14",
-    "concurrently": "^8.2.2",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^1.21.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.1.3"

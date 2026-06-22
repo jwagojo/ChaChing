@@ -1,84 +1,94 @@
-const API_URL = 'http://localhost:3001/api';
+import { supabase } from './supabaseClient';
+
+function getLocation() {
+  return localStorage.getItem('chaching-location');
+}
+
+function toRow(data) {
+  return {
+    closer: data.closer,
+    counts: data.counts,
+    total_amount: data.totalAmount,
+    safe_amount: data.safeAmount,
+    revenue_amount: data.revenueAmount,
+    closing_instructions: data.closingInstructions ?? null,
+  };
+}
+
+function fromRow(row) {
+  return {
+    id: row.id,
+    closer: row.closer,
+    counts: row.counts,
+    totalAmount: row.total_amount,
+    safeAmount: row.safe_amount,
+    revenueAmount: row.revenue_amount,
+    closingInstructions: row.closing_instructions,
+    timestamp: row.timestamp,
+    date: row.date,
+    location: row.location,
+  };
+}
 
 class LogService {
   async getAllLogs() {
-    try {
-      const response = await fetch(`${API_URL}/logs`);
-      if (!response.ok) throw new Error('Failed to fetch logs');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-      if (error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please make sure the server is running.');
-      }
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('location', getLocation())
+      .order('timestamp', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data.map(fromRow);
   }
 
   async getLogsByDate(date) {
-    try {
-      const response = await fetch(`${API_URL}/logs/${date}`);
-      if (!response.ok) throw new Error('Failed to fetch logs');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching logs by date:', error);
-      if (error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please make sure the server is running.');
-      }
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('logs')
+      .select('*')
+      .eq('location', getLocation())
+      .eq('date', date)
+      .order('timestamp', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data.map(fromRow);
   }
 
   async saveLog(closingData) {
-    try {
-      const response = await fetch(`${API_URL}/logs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(closingData)
-      });
-      if (!response.ok) throw new Error('Failed to save log');
-      return await response.json();
-    } catch (error) {
-      console.error('Error saving log:', error);
-      if (error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please make sure the server is running.');
-      }
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('logs')
+      .insert({ ...toRow(closingData), location: getLocation() })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return fromRow(data);
   }
 
   async updateLog(id, updatedData) {
-    try {
-      const response = await fetch(`${API_URL}/logs/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData)
-      });
-      if (!response.ok) throw new Error('Failed to update log');
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating log:', error);
-      if (error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please make sure the server is running.');
-      }
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('logs')
+      .update(toRow(updatedData))
+      .eq('id', id)
+      .eq('location', getLocation())
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return fromRow(data);
   }
 
   async deleteLog(id) {
-    try {
-      const response = await fetch(`${API_URL}/logs/${id}`, {
-        method: 'DELETE'
-      });
-      if (!response.ok) throw new Error('Failed to delete log');
-      return await response.json();
-    } catch (error) {
-      console.error('Error deleting log:', error);
-      if (error.message.includes('fetch')) {
-        throw new Error('Unable to connect to server. Please make sure the server is running.');
-      }
-      throw error;
-    }
+    const { data, error } = await supabase
+      .from('logs')
+      .delete()
+      .eq('id', id)
+      .eq('location', getLocation())
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return fromRow(data);
   }
 }
 
