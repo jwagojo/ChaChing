@@ -128,32 +128,59 @@ function Closing() {
     }
   }, [editingLog]);
 
-  const total   = DENOMINATIONS.reduce((sum, { key, unit }) => sum + (parseInt(counts[key]) || 0) * unit, 0);
-  const deposit = Math.max(0, Math.round((total - SAFE_BASE) * 100) / 100);
-  const safe    = Math.min(total, SAFE_BASE);
+  const total     = DENOMINATIONS.reduce((sum, { key, unit }) => sum + (parseInt(counts[key]) || 0) * unit, 0);
+  const billTotal = DENOMINATIONS
+    .filter(d => d.section === 'Bills')
+    .reduce((sum, { key, unit }) => sum + (parseInt(counts[key]) || 0) * unit, 0);
+  const coinTotal = Math.round((total - billTotal) * 100) / 100;
+
+  // Pull highest bills first into the envelope.
+  // Stop as soon as the drawer bills are within $5 of $200 — don't touch small bills.
+  // Coins always stay in the drawer.
+  const THRESHOLD = 5;
+  const BILL_TIERS = [
+    { key: 'hundreds', unit: 100, label: '$100 bills' },
+    { key: 'fifties',  unit: 50,  label: '$50 bills'  },
+    { key: 'twenties', unit: 20,  label: '$20 bills'  },
+    { key: 'tens',     unit: 10,  label: '$10 bills'  },
+    { key: 'fives',    unit: 5,   label: '$5 bills'   },
+    { key: 'ones',     unit: 1,   label: '$1 bills'   },
+  ];
+
+  const depositedBills = [];
+  let drawerBills = billTotal;
+
+  for (const { key, unit, label } of BILL_TIERS) {
+    // Stop once drawer bills are within $5 of $200 — threshold reached
+    if (drawerBills <= SAFE_BASE + THRESHOLD) break;
+    const avail  = parseInt(counts[key]) || 0;
+    // Pull just enough to not drop below (SAFE_BASE - THRESHOLD) = $195
+    const maxPull = Math.floor((drawerBills - (SAFE_BASE - THRESHOLD)) / unit);
+    const pull    = Math.min(avail, Math.max(0, maxPull));
+    if (pull > 0) {
+      depositedBills.push({ label, pull, value: pull * unit });
+      drawerBills -= pull * unit;
+    }
+  }
+
+  const rawDeposit = depositedBills.reduce((s, b) => s + b.value, 0);
+  // Skip if under $5 — not worth depositing
+  const deposit = rawDeposit >= 5 ? rawDeposit : 0;
+  const safe    = Math.round((total - deposit) * 100) / 100;
 
   const buildSteps = () => {
-    if (deposit <= 0) return ['No deposit needed — drawer is at base.'];
-    const steps = [];
-    let rem = deposit;
-    const tiers = [
-      { key: 'hundreds', unit: 100, label: '$100 bills', min: 0 },
-      { key: 'fifties',  unit: 50,  label: '$50 bills',  min: 0 },
-      { key: 'twenties', unit: 20,  label: '$20 bills',  min: 0 },
-      { key: 'tens',     unit: 10,  label: '$10 bills',  min: 5 },
-      { key: 'fives',    unit: 5,   label: '$5 bills',   min: 5 },
-      { key: 'ones',     unit: 1,   label: '$1 bills',   min: 5 },
-    ];
-    for (const { key, unit, label, min } of tiers) {
-      if (rem < 0.01) break;
-      const avail = parseInt(counts[key]) || 0;
-      const pull = Math.min(Math.max(0, avail - min), Math.floor(rem / unit));
-      if (pull > 0) {
-        steps.push(`${pull} × ${label}  =  ${$$(pull * unit)}`);
-        rem = Math.round((rem - pull * unit) * 100) / 100;
-      }
+    if (total === 0) return ['Enter cash counts above.'];
+    if (deposit <= 0) {
+      const over = Math.round((billTotal - SAFE_BASE) * 100) / 100;
+      if (over > 0 && over < 5)
+        return [`Drawer is ${$$(over)} over base — within $5 threshold, no deposit needed.`];
+      return [`Drawer is at or below $${SAFE_BASE} — no deposit needed.`];
     }
-    if (rem > 0.01) steps.push(`Short ${$$(rem)} — supplement with coins`);
+    const steps = ['Place the following bills in the deposit envelope:'];
+    depositedBills.forEach(({ label, pull, value }) => {
+      steps.push(`  ${pull} × ${label}  =  ${$$(value)}`);
+    });
+    steps.push(`Keep remaining ${$$(safe)} in the drawer.`);
     return steps;
   };
 
@@ -452,7 +479,7 @@ function SummaryPanel({ total, deposit, safe, steps }) {
 
       <div className="px-6 py-6 border-b border-black/[0.07]">
         <div className="grid grid-cols-2 gap-6">
-          {[{ label: 'Deposit', value: deposit, sub: 'to envelope' }, { label: 'Safe', value: safe, sub: 'stays in drawer' }].map(({ label, value, sub }) => (
+          {[{ label: 'Deposit', value: deposit, sub: 'to envelope' }, { label: 'Register', value: safe, sub: 'stays in drawer' }].map(({ label, value, sub }) => (
             <div key={label}>
               <div className="text-[10px] uppercase tracking-[0.18em] text-[#8a8378] mb-2" style={{ fontFamily: serif }}>
                 {label}
